@@ -1,0 +1,84 @@
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>IRMAK GENÇ - 17290100</title>
+	</head>
+	<body>
+		<canvas id="gl-canvas" width="512" height="512"></canvas>
+		<strong><br><label style="background-color:rgb(245, 130, 130);font-size:22px;"> Press 'x' on your keyboard to rotate in the x direction! </br><strong></label>
+		<strong><br><label style="background-color:rgb(171, 124, 178);font-size:22px;"> Press 'y' on your keyboard to rotate in the y direction! </br><strong></label>
+		<strong><br><label style="background-color:rgb(125, 182, 162);font-size:22px;"> Press 'z' on your keyboard to rotate in the z direction! </br><strong></label>
+	</body>
+
+	<script id="vertex-shader" type="x-shader/x-vertex">
+
+		attribute vec4 vPosition;
+		attribute vec3 vNormal;
+		attribute vec2 vTexCoords;
+		uniform sampler2D texMap;
+		varying vec2 fTexCoords;	
+		varying vec4 NN;
+		varying vec3 pos;
+		
+		uniform mat4 modelViewMatrix;
+		uniform mat4 projectionMatrix;
+
+		void main()
+		{
+			fTexCoords = vTexCoords;
+			
+			pos = -(modelViewMatrix * vPosition).xyz; //camera direction
+			
+			NN = modelViewMatrix * vec4(vNormal, 0);
+			
+			gl_Position = projectionMatrix * modelViewMatrix * vPosition;		
+		}
+	</script>
+
+	<script id="fragment-shader" type="x-shader/x-fragment">
+
+		precision mediump float;
+		
+		varying vec4 NN;
+		varying vec3 pos;
+		varying vec2 fTexCoords;
+		uniform sampler2D texMap;
+		uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+		uniform vec4 lightDirection;
+		uniform float shininess;
+
+		void main()
+		{
+			//transform vertex normal into eye coordinates
+			vec3 N = normalize(	NN.xyz);
+			
+			//fixed lightDirection
+			vec3 L = normalize(-lightDirection.xyz);
+			vec3 V = normalize(-pos);
+			vec3 H = normalize(L+V);
+			
+			//compute terms in the illumination equation
+			vec4 ambient = ambientProduct;
+
+			float dotLN = dot(L, N);
+			float diffuseCosAngle = max(dotLN, 0.0);
+			vec4 diffuse = diffuseCosAngle * diffuseProduct;
+			
+			float dotNH = dot(N, H);
+			float specularCosAngle = pow( max(dotNH, 0.0), shininess );
+			vec4 specular = specularCosAngle * specularProduct;
+			
+			if( dotLN < 0.0){
+				specular = vec4(0.0, 0.0, 0.0, 1.0);
+			}
+			gl_FragColor = (ambient + diffuse + specular) * texture2D(texMap, fTexCoords);
+			gl_FragColor.a = 1.0;
+		}
+	</script>
+
+	<script src="initShaders.js"></script>
+	<script src="MV.js"></script>
+	<script src="compGraph2.js"></script>
+	<script src="webgl-utils.js"></script>
+	
+	</html>
